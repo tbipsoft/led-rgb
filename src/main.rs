@@ -13,6 +13,7 @@ use std::{
 };
 
 use rg52led::{
+    devices::{self, screen, Feature},
     ui::{parse_accent, tiles, Hit, Model, Renderer, Status, ACCENT_DEFAULT, COLS, TILE_COUNT},
     Color, Config, Controller, Desired, DryRun, LedHandle, Options, Timing, Transport,
     UartTransport, BRI_MAX, BRI_MIN, DEFAULT_DEV, DEFAULT_PWR,
@@ -30,6 +31,7 @@ use sdl2::{
 // ---------------------------------------------------------------------------
 
 struct Args {
+    device: Option<String>,
     dev: String,
     pwr: String,
     cfg: PathBuf,
@@ -49,6 +51,7 @@ const HELP: &str = "\
 rg52-led - cores dos LEDs dos analogicos do RG52 Mini (precisa de root para a serial/debugfs)
 
 USO: rg52-led [opcoes]
+  --device ID       auto (padrao), rg52mini, rg43, r36s, rgb10, a10mini, rk3566 ou generic
   --dev PATH        UART da MCU de LED            (padrao /dev/ttyS1)
   --pwr PATH        enable do regulador vcc-led   (padrao /sys/kernel/debug/regulator/vcc-led/enable)
   --cfg PATH        arquivo led.cfg               (padrao /home/ark/.config/led.cfg ou ~/.config/led.cfg)
@@ -77,6 +80,7 @@ fn default_cfg() -> PathBuf {
 
 fn parse_args() -> Result<Args, String> {
     let mut a = Args {
+        device: None,
         dev: DEFAULT_DEV.into(),
         pwr: DEFAULT_PWR.into(),
         cfg: default_cfg(),
@@ -98,6 +102,7 @@ fn parse_args() -> Result<Args, String> {
                 .ok_or_else(|| format!("{name} precisa de um valor"))
         };
         match arg.as_str() {
+            "--device" => a.device = Some(val("--device")?),
             "--dev" => a.dev = val("--dev")?,
             "--pwr" => a.pwr = val("--pwr")?,
             "--cfg" => a.cfg = PathBuf::from(val("--cfg")?),
@@ -373,7 +378,41 @@ fn main() {
     }
 }
 
+const INCOMPATIBLE: &str = "This device has no compatible RGB LED controller.";
+
 fn run(args: Args) -> Result<(), String> {
+    // Antes de criar o transporte: em outro aparelho a UART1 pode ser outra coisa.
+    let detected = devices::resolve(args.device.as_deref())?;
+    let simulated = args.dry_run && args.device.is_none();
+    if !detected.supports(Feature::RgbLed) && !simulated {
+        eprintln!("device incompatible: {}", detected.label());
+        if let Some(path) = &args.screenshot {
+            let mut pm = rg52led::gfx::Pixmap::new(1280, 720);
+            let fonts = rg52led::gfx::Fonts::new();
+            screen::render(
+                &mut pm,
+                &fonts,
+                "LED RGB",
+                &detected,
+                INCOMPATIBLE,
+                args.accent,
+            );
+            return pm.write_ppm(path).map_err(|e| e.to_string());
+        }
+        return screen::show(
+            "LED RGB",
+            &detected,
+            INCOMPATIBLE,
+            args.accent,
+            args.fullscreen,
+            args.no_gamepad,
+        );
+    }
+    let title = if detected.profile.rgb_led {
+        detected.profile.title
+    } else {
+        "RG52"
+    };
     let cfg = Config::load(&args.cfg);
     let leds = args.leds.unwrap_or(cfg.ledcount);
     let opt = Options {
@@ -398,6 +437,7 @@ fn run(args: Args) -> Result<(), String> {
     // Captura sem janela: nao precisa de SDL nem de video.
     if let Some(path) = &args.screenshot {
         let mut r = Renderer::new(1280, 720);
+        r.set_title(title);
         r.update(
             &app.model(leds, args.dry_run, args.accent),
             0.7,
@@ -420,7 +460,7 @@ fn run(args: Args) -> Result<(), String> {
         }
     }
 
-    let mut wb = video.window("RG52 LED", 960, 540);
+    let mut wb = video.window(&format!("{title} LED"), 960, 540);
     wb.position_centered().resizable();
     if args.fullscreen {
         wb.fullscreen_desktop();
@@ -444,6 +484,7 @@ fn run(args: Args) -> Result<(), String> {
     canvas.present();
     let (mut w, mut h) = canvas.output_size()?;
     let mut rend = Renderer::new(w as usize, h as usize);
+    rend.set_title(title);
     let mut tex = tc
         .create_texture_streaming(PixelFormatEnum::ARGB8888, w, h)
         .map_err(|e| e.to_string())?;

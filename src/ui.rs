@@ -388,40 +388,7 @@ struct P<'a> {
     oy: f32,
 }
 
-/// Logo (RGBA, 264x56 = 2x do tamanho no design) e o tamanho em que e desenhado.
-const LOGO: &[u8] = include_bytes!("../assets/logo_264x56.rgba");
-const LOGO_SRC: (usize, usize) = (264, 56);
-const LOGO_W: f32 = 132.0;
-const LOGO_H: f32 = 27.8;
-const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
-
 impl P<'_> {
-    /// Desenha o logo centrado em (`cx`, `cy`) (coordenadas do design). A versao
-    /// reamostrada fica em cache, ja que o desenho pode rodar uma vez por segundo.
-    fn logo(&mut self, cx: f32, cy: f32) {
-        thread_local! {
-            static CACHE: std::cell::RefCell<Option<(usize, usize, Pixmap)>> =
-                const { std::cell::RefCell::new(None) };
-        }
-        let (dw, dh) = (
-            (LOGO_W * self.k).round() as usize,
-            (LOGO_H * self.k).round() as usize,
-        );
-        let (x, y) = (
-            (self.ox + (cx - LOGO_W / 2.0) * self.k).round() as i32,
-            (self.oy + (cy - LOGO_H / 2.0) * self.k).round() as i32,
-        );
-        CACHE.with(|c| {
-            let mut c = c.borrow_mut();
-            if !matches!(&*c, Some((w, h, _)) if *w == dw && *h == dh) {
-                let pm = Pixmap::from_rgba_scaled(LOGO, LOGO_SRC.0, LOGO_SRC.1, dw, dh);
-                *c = Some((dw, dh, pm));
-            }
-            if let Some((_, _, pm)) = &*c {
-                self.pm.blit(pm, x, y, 1.0);
-            }
-        });
-    }
     fn x(&self, v: f32) -> f32 {
         self.ox + v * self.k
     }
@@ -462,10 +429,6 @@ impl P<'_> {
     fn circle(&mut self, cx: f32, cy: f32, r: f32, c: Color) {
         let (x, y) = (self.x(cx), self.y(cy));
         self.pm.fill_circle(x, y, r * self.k, c);
-    }
-    fn ring(&mut self, cx: f32, cy: f32, r: f32, bw: f32, c: Color) {
-        let (x, y) = (self.x(cx), self.y(cy));
-        self.pm.stroke_circle(x, y, r * self.k, bw * self.k, c);
     }
     fn dashed_ring(&mut self, cx: f32, cy: f32, r: f32, bw: f32, c: Color) {
         let (x, y, k) = (self.x(cx), self.y(cy), self.k);
@@ -537,6 +500,7 @@ const TILE_PAD: f32 = 40.0;
 
 pub struct Renderer {
     fonts: Fonts,
+    title: &'static str,
     tiles: Vec<Tile>,
     geo: Geo,
     w: usize,
@@ -572,6 +536,7 @@ impl Renderer {
     pub fn new(w: usize, h: usize) -> Renderer {
         let mut r = Renderer {
             fonts: Fonts::new(),
+            title: "RG52",
             tiles: tiles(),
             geo: geo(),
             w: 0,
@@ -617,6 +582,13 @@ impl Renderer {
         self.build_tiles();
         self.key = None;
         self.last_status = None;
+    }
+
+    /// Nome do aparelho no cabecalho.
+    pub fn set_title(&mut self, title: &'static str) {
+        self.title = title;
+        self.statics_key = None;
+        self.key = None;
     }
 
     pub fn frame(&self) -> &Pixmap {
@@ -700,19 +672,21 @@ impl Renderer {
 
         // --- cabecalho (y 24..68, centro 46) ---
         let cy = 46.0;
-        p.ring(32.0 + 9.0, cy, 6.5, 2.0, TEXT);
-        p.ring(32.0 + 21.0, cy, 6.5, 2.0, acc);
-        let w1 = p.text_mid(Face::Sans800, 24.0, -0.48, TEXT, 74.0, cy, "RG52");
-        p.text_mid(
-            Face::Sans500,
-            24.0,
-            -0.48,
-            MUTED,
-            74.0 + w1 + 6.0,
-            cy,
-            "LED",
+        crate::header::draw(
+            p.pm,
+            p.f,
+            p.k,
+            p.ox,
+            p.oy,
+            &crate::header::Header {
+                left: 32.0,
+                center: 480.0,
+                cy: cy,
+                compact: false,
+                device: self.title,
+                app: "LED",
+            },
         );
-        p.logo(480.0, cy);
         if m.dry_run {
             let tw = p.width(Face::Sans800, 12.0, 1.68, "DRY-RUN");
             let w = 3.0 + 28.0 + 7.0 + 8.0 + tw;
@@ -786,18 +760,6 @@ impl Renderer {
             let lw = p.text_mid(Face::Sans600, 13.0, 0.0, MUTED, x + kw + 8.0, cy, label);
             x += kw + 8.0 + lw + 20.0;
         }
-
-        // versao, alinhada a direita da coluna de tiles
-        let vw = p.width(Face::Mono500, 12.0, 0.0, VERSION);
-        p.text_mid(
-            Face::Mono500,
-            12.0,
-            0.0,
-            MUTED,
-            LEFT_X + LEFT_W - vw,
-            cy,
-            VERSION,
-        );
 
         // --- painel direito ---
         let panel = R {

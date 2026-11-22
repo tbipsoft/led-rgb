@@ -13,6 +13,9 @@
 #   <pasta deste script>/rg52-led               (binario ao lado do .sh)
 #   /opt/rg52-led/rg52-led
 #
+# Em aparelho sem esse LED o app mostra "DEVICE INCOMPATIBLE" e nao toca na serial.
+#   DEVICE_PROFILE=r36s  forca o perfil (rg52mini, rg43, r36s, rgb10, a10mini, rk3566, generic)
+#
 # NAO use junto com o "LED Settings.sh": os dois escrevem na mesma serial.
 
 APP=rg52-led
@@ -74,6 +77,7 @@ export SDL_GAMECONTROLLERCONFIG_FILE="/opt/inttools/gamecontrollerdb.txt"
 export XDG_RUNTIME_DIR="/run/user/$UID/"
 
 ARGS=(--fullscreen --cfg "$CFG")
+[ -n "$DEVICE_PROFILE" ] && ARGS+=(--device "$DEVICE_PROFILE")
 if [ "$USE_GPTOKEYB" = "1" ]; then
   sudo chmod 666 /dev/uinput
   pgrep -f gptokeyb | sudo xargs -r kill -9

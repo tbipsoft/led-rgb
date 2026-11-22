@@ -14,8 +14,10 @@ use std::{
 };
 
 use rg52led::{
-    bri_byte, init_byte, parse_byte, Config, DryRun, Options, Session, Timing, Transport,
-    UartTransport, BREATHING, BRI_MAX, BRI_MIN, DEFAULT_DEV, DEFAULT_PWR, MODE_OFF, SOLID,
+    bri_byte,
+    devices::{self, Feature},
+    init_byte, parse_byte, Config, DryRun, Options, Session, Timing, Transport, UartTransport,
+    BREATHING, BRI_MAX, BRI_MIN, DEFAULT_DEV, DEFAULT_PWR, MODE_OFF, SOLID,
 };
 
 const HELP: &str = "\
@@ -533,6 +535,13 @@ fn run() -> Result<(), String> {
         ledcount: leds,
         timing: Timing::default(),
     };
+    // `--dev` explicito e decisao de quem esta explorando o hardware.
+    if !p.flag("dry-run") && p.val("dev").is_none() && p.pos[0] != "status" {
+        let d = devices::resolve(None)?;
+        if !d.supports(Feature::RgbLed) {
+            return Err(format!("device incompatible: {}", d.label()));
+        }
+    }
     let transport: Box<dyn Transport> = if p.flag("dry-run") {
         Box::new(DryRun::verbose())
     } else {

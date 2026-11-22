@@ -10,9 +10,11 @@
 //! * o trilho `vcc-led` e ligado/desligado pelo debugfs do regulador.
 
 pub mod config;
+pub mod devices;
 pub mod driver;
 pub mod effects;
 pub mod gfx;
+pub mod header;
 pub mod session;
 pub mod ui;
 

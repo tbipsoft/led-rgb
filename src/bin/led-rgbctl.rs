@@ -1,4 +1,4 @@
-//! rg52-ledctl: testes por linha de comando dos LEDs dos analogicos do RG52 Mini.
+//! led-rgbctl: testes por linha de comando dos LEDs dos analogicos do RG52 Mini.
 //!
 //! Serve para (1) trocar cor/brilho sem a interface grafica e (2) explorar a MCU:
 //! enviar bytes crus e varrer faixas de bytes anotando o que cada um faz.
@@ -13,7 +13,7 @@ use std::{
     time::Duration,
 };
 
-use rg52led::{
+use led_rgb::{
     bri_byte,
     devices::{self, Feature},
     init_byte, parse_byte, Config, DryRun, Options, Session, Timing, Transport, UartTransport,
@@ -21,10 +21,10 @@ use rg52led::{
 };
 
 const HELP: &str = "\
-rg52-ledctl - testes por linha de comando dos LEDs do RG52 Mini
+led-rgbctl - testes por linha de comando dos LEDs do RG52 Mini
 (precisa de root; com --dry-run mostra os bytes sem tocar no hardware)
 
-USO: rg52-ledctl [opcoes] <comando> [argumentos]
+USO: led-rgbctl [opcoes] <comando> [argumentos]
 
 COMANDOS
   color NOME [--breath]   red green blue cyan yellow magenta rainbow scroll
@@ -55,13 +55,13 @@ OPCOES
   --dry-run               nao toca no hardware; imprime os eventos em stderr
 
 EXEMPLOS
-  rg52-ledctl color red --bri 9
-  rg52-ledctl color rainbow --breath --save
-  rg52-ledctl mode 12                 # testa um modo que nao esta no menu
-  rg52-ledctl sweep --mode 3          # ve os 9 niveis de brilho no vermelho
-  rg52-ledctl scan --out modos.txt    # varre os modos 1..31 anotando o que cada um faz
-  rg52-ledctl scan --kind bri --mode 7 --from 36 --to 60
-  rg52-ledctl raw --init 3 44         # modo 3 e brilho com byte cru 44
+  led-rgbctl color red --bri 9
+  led-rgbctl color rainbow --breath --save
+  led-rgbctl mode 12                 # testa um modo que nao esta no menu
+  led-rgbctl sweep --mode 3          # ve os 9 niveis de brilho no vermelho
+  led-rgbctl scan --out modos.txt    # varre os modos 1..31 anotando o que cada um faz
+  led-rgbctl scan --kind bri --mode 7 --from 36 --to 60
+  led-rgbctl raw --init 3 44         # modo 3 e brilho com byte cru 44
 ";
 
 const VALUE_FLAGS: &[&str] = &[
@@ -503,7 +503,7 @@ fn cmd_scan(s: &mut Sess, c: &Ctx) -> Result<(), String> {
             println!("anotacoes gravadas em {path}");
         }
     }
-    println!("Os LEDs ficam no ultimo estado enviado. Para voltar: rg52-ledctl color red  |  rg52-ledctl off");
+    println!("Os LEDs ficam no ultimo estado enviado. Para voltar: led-rgbctl color red  |  led-rgbctl off");
     Ok(())
 }
 

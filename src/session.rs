@@ -1,6 +1,6 @@
 //! Sessao de baixo nivel: uma porta aberta durante varios envios.
 //!
-//! Usada pela ferramenta de linha de comando (`rg52-ledctl`) para testes e
+//! Usada pela ferramenta de linha de comando (`led-rgbctl`) para testes e
 //! exploracao: ao contrario do `Controller`, nao decide nada sozinha (nao faz init
 //! automatico, nao valida modo nem brilho) -- so envia os bytes pedidos.
 

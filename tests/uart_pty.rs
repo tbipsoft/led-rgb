@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use rg52led::{Controller, Desired, Options, Timing, UartTransport};
+use led_rgb::{Controller, Desired, Options, Timing, UartTransport};
 
 fn openpty() -> (File, PathBuf, File) {
     let (mut m, mut s) = (0, 0);
@@ -44,7 +44,7 @@ fn bytes_chegam_na_mcu_com_9600_8n1() {
     let (mut master, slave_path, slave_keepalive) = openpty();
 
     // Rail de mentira: um arquivo comum.
-    let pwr = std::env::temp_dir().join(format!("rg52led-pwr-{}", std::process::id()));
+    let pwr = std::env::temp_dir().join(format!("led_rgb-pwr-{}", std::process::id()));
     std::fs::write(&pwr, "0").unwrap();
 
     let opt = Options {

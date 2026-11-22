@@ -1,4 +1,4 @@
-//! rg52-led: troca as cores dos LEDs dos analogicos do RG52 Mini em tempo real.
+//! led-rgb: troca as cores dos LEDs dos analogicos do RG52 Mini em tempo real.
 //!
 //! A tela (design 960x540, ver `ui.rs`) e desenhada por software em um `Pixmap` e
 //! enviada a uma textura SDL. A cada movimento no D-pad a cor/efeito e enviado a
@@ -12,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use rg52led::{
+use led_rgb::{
     devices::{self, screen, Feature},
     ui::{parse_accent, tiles, Hit, Model, Renderer, Status, ACCENT_DEFAULT, COLS, TILE_COUNT},
     Color, Config, Controller, Desired, DryRun, LedHandle, Options, Timing, Transport,
@@ -48,9 +48,9 @@ struct Args {
 }
 
 const HELP: &str = "\
-rg52-led - cores dos LEDs dos analogicos do RG52 Mini (precisa de root para a serial/debugfs)
+led-rgb - cores dos LEDs dos analogicos do RG52 Mini (precisa de root para a serial/debugfs)
 
-USO: rg52-led [opcoes]
+USO: led-rgb [opcoes]
   --device ID       auto (padrao), rg52mini, rg43, r36s, rgb10, a10mini, rk3566 ou generic
   --dev PATH        UART da MCU de LED            (padrao /dev/ttyS1)
   --pwr PATH        enable do regulador vcc-led   (padrao /sys/kernel/debug/regulator/vcc-led/enable)
@@ -186,7 +186,7 @@ struct App {
     cfg_path: PathBuf,
     /// Tile com o cursor (0..16): linhas 0-1 = SOLID, 2-3 = BREATHING.
     cur: usize,
-    tiles: Vec<rg52led::ui::Tile>,
+    tiles: Vec<led_rgb::ui::Tile>,
     led: LedHandle,
     /// Ja mandou algo a MCU nesta sessao (para mostrar "Sent").
     pushed: bool,
@@ -387,8 +387,8 @@ fn run(args: Args) -> Result<(), String> {
     if !detected.supports(Feature::RgbLed) && !simulated {
         eprintln!("device incompatible: {}", detected.label());
         if let Some(path) = &args.screenshot {
-            let mut pm = rg52led::gfx::Pixmap::new(1280, 720);
-            let fonts = rg52led::gfx::Fonts::new();
+            let mut pm = led_rgb::gfx::Pixmap::new(1280, 720);
+            let fonts = led_rgb::gfx::Fonts::new();
             screen::render(
                 &mut pm,
                 &fonts,
@@ -575,7 +575,7 @@ fn run(args: Args) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rg52led::Event as Ev;
+    use led_rgb::Event as Ev;
     use std::sync::{Arc, Mutex};
 
     fn app_with(cfg: Config, name: &str) -> (App, Arc<Mutex<Vec<Ev>>>, PathBuf) {
@@ -586,7 +586,7 @@ mod tests {
             ..Options::default()
         };
         let led = LedHandle::spawn(Controller::new(t, opt));
-        let path = env::temp_dir().join(format!("rg52led-{name}-{}.cfg", process::id()));
+        let path = env::temp_dir().join(format!("led_rgb-{name}-{}.cfg", process::id()));
         (App::new(cfg, path.clone(), led), log, path)
     }
 

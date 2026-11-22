@@ -24,7 +24,7 @@ esperar a UI a cada troca.
 
 ## Aparelhos
 
-O app só funciona no **RG52 Mini e RG43 Pro** (RK3562), que têm a MCU de LED na UART1. Em qualquer outro aparelho ele mostra **DEVICE INCOMPATIBLE** e não abre a serial; o `rg52-ledctl` também recusa, a não ser com `--dev` explícito ou `--dry-run`.
+O app só funciona no **RG52 Mini e RG43 Pro** (RK3562), que têm a MCU de LED na UART1. Em qualquer outro aparelho ele mostra **DEVICE INCOMPATIBLE** e não abre a serial; o `led-rgbctl` também recusa, a não ser com `--dev` explícito ou `--dry-run`.
 
 O aparelho é identificado por `--device`, `/home/ark/.config/.DEVICE`, hostname e chip, nesta ordem. Os perfis ficam em `src/devices/`, pasta idêntica em led-rgb, remote-services e system-info. Use `--device ID` (`rg52mini`, `rg43`, `r36s`, `rgb10`, `a10mini`, `rk3566`, `generic`) ou `DEVICE_PROFILE=ID` no script para forçar um perfil.
 

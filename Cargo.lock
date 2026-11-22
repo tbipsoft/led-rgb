@@ -37,6 +37,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
+name = "led-rgb"
+version = "1.0.0-alpha"
+dependencies = [
+ "ab_glyph",
+ "libc",
+ "sdl2",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -49,15 +58,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36820e9051aca1014ddc75770aab4d68bc1e9e632f0f5627c4086bc216fb583b"
 dependencies = [
  "ttf-parser",
-]
-
-[[package]]
-name = "rg52-led"
-version = "1.0.0-alpha"
-dependencies = [
- "ab_glyph",
- "libc",
- "sdl2",
 ]
 
 [[package]]

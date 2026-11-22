@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# LED RGB -- launcher do menu "Tools" do dArkOS para o app rg52-led
+# LED RGB -- launcher do menu "Tools" do dArkOS para o app led-rgb
 # (cores dos LEDs dos analogicos do RG52 Mini / RG43 Pro, RK3562).
 #
 # Segue o mesmo padrao do "LED Settings.sh" do dArkOS: roda como o usuario ark,
@@ -8,20 +8,20 @@
 # vcc-led sao acessados pelo proprio app, que e executado com sudo) e usa a tty1.
 #
 # Onde colocar: este .sh na mesma pasta dos outros scripts do menu Tools (onde
-# esta o "LED Settings.sh") e o binario `rg52-led` numa destas opcoes:
-#   <pasta deste script>/rg52-led/rg52-led      (pasta "rg52-led" ao lado do .sh)
-#   <pasta deste script>/rg52-led               (binario ao lado do .sh)
-#   /opt/rg52-led/rg52-led
+# esta o "LED Settings.sh") e o binario `led-rgb` numa destas opcoes:
+#   <pasta deste script>/led-rgb/led-rgb      (pasta "led-rgb" ao lado do .sh)
+#   <pasta deste script>/led-rgb               (binario ao lado do .sh)
+#   /opt/led-rgb/led-rgb
 #
 # Em aparelho sem esse LED o app mostra "DEVICE INCOMPATIBLE" e nao toca na serial.
 #   DEVICE_PROFILE=r36s  forca o perfil (rg52mini, rg43, r36s, rgb10, a10mini, rk3566, generic)
 #
 # NAO use junto com o "LED Settings.sh": os dois escrevem na mesma serial.
 
-APP=rg52-led
+APP=led-rgb
 CFG=/home/ark/.config/led.cfg
-LOG=/tmp/rg52-led.log
-RUN=/tmp/rg52-led.run
+LOG=/tmp/led-rgb.log
+RUN=/tmp/led-rgb.run
 TTY=${TTY:-/dev/tty1}
 
 # Entrada de controle:
@@ -55,7 +55,7 @@ sudo chmod 666 "$TTY" 2>/dev/null
 printf '\033c\e[?25l' > "$TTY" 2>/dev/null   # limpa a tela e esconde o cursor
 
 BIN=$(find_bin) || {
-  say "rg52-led nao encontrado.
+  say "led-rgb nao encontrado.
 
 Coloque o binario em uma destas opcoes:
   $HERE/$APP/$APP
@@ -95,7 +95,7 @@ sudo env \
 STATUS=$?
 
 if [ "$STATUS" -ne 0 ]; then
-  say "rg52-led terminou com erro ($STATUS).
+  say "led-rgb terminou com erro ($STATUS).
 
 $(tail -n 12 "$LOG" 2>/dev/null)
 

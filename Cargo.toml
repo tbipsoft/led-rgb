@@ -1,5 +1,5 @@
 [package]
-name = "rg52-led"
+name = "led-rgb"
 version = "1.0.0-alpha"
 edition = "2021"
 rust-version = "1.80"
@@ -7,15 +7,15 @@ description = "Troca de cores dos LEDs RGB dos analogicos do RG52 Mini (AISLPC R
 license = "MIT"
 
 [lib]
-name = "rg52led"
+name = "led_rgb"
 path = "src/lib.rs"
 
 [[bin]]
-name = "rg52-ledctl"
-path = "src/bin/rg52-ledctl.rs"
+name = "led-rgbctl"
+path = "src/bin/led-rgbctl.rs"
 
 [[bin]]
-name = "rg52-led"
+name = "led-rgb"
 path = "src/main.rs"
 required-features = ["ui"]
 

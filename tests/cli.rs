@@ -1,4 +1,4 @@
-//! Testes do `rg52-ledctl` rodando o binario de verdade em --dry-run e conferindo
+//! Testes do `led-rgbctl` rodando o binario de verdade em --dry-run e conferindo
 //! os bytes que iriam para a MCU (eventos impressos em stderr).
 
 use std::{
@@ -17,7 +17,7 @@ struct Out {
 
 fn ctl(args: &[&str], stdin: &str) -> Out {
     // Padroes primeiro: se o teste repetir uma opcao (ex.: --cfg), a ultima vence.
-    let mut child = Command::new(env!("CARGO_BIN_EXE_rg52-ledctl"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_led-rgbctl"))
         .args([
             "--dry-run",
             "--repeat",
@@ -30,7 +30,7 @@ fn ctl(args: &[&str], stdin: &str) -> Out {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("nao consegui rodar rg52-ledctl");
+        .expect("nao consegui rodar led-rgbctl");
     child
         .stdin
         .take()
@@ -53,7 +53,7 @@ fn ctl(args: &[&str], stdin: &str) -> Out {
 }
 
 fn tmp(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!("rg52ledctl-{name}-{}", std::process::id()))
+    std::env::temp_dir().join(format!("led_rgbctl-{name}-{}", std::process::id()))
 }
 
 #[test]

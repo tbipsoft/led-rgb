@@ -53,6 +53,10 @@ Há cores fixas, combinações e efeitos como **rainbow** (arco-íris), **scroll
 A cor escolhida fica salva e é a mesma usada pelo **LED Settings** do dArkOS. Só não use os dois
 ao mesmo tempo, porque eles disputam o controle dos LEDs.
 
+🔔 Com o aparelho conectado à internet, o app avisa quando houver uma **versão nova**. Por enquanto a
+atualização é manual: baixe a versão nova e substitua os arquivos na pasta `Tbip`, como em
+[Como instalar](#-como-instalar).
+
 ## 💬 Encontrou um problema ou tem uma sugestão?
 
 Se algo não funcionou no seu aparelho ou você tem uma ideia para melhorar o app,

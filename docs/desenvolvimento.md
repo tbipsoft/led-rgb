@@ -149,6 +149,23 @@ Enviar bytes avulsos é o mesmo que o `ledctl.sh raw` do dArkOS faz, mas **não 
 firmware faz com bytes não documentados**. Para uma MCU de LEDs o risco é baixo; ainda assim, vá
 aos poucos e anote.
 
+## Aviso de versão nova
+
+Ao abrir, o app lê em segundo plano o `version.txt` da branch `main` deste repositório com o `curl` do sistema, limitado a 6 s. Se a versão de lá for
+mais nova que a do binário (`CARGO_PKG_VERSION`, comparada como semver, inclusive `-alpha`/`-beta`),
+mostra um aviso por cima da tela pedindo para baixar a versão nova e trocar os arquivos manualmente.
+A, B, Start, Enter, Esc ou um toque fecham o aviso sem sair do app; enquanto ele está aberto, os
+botões não chegam ao app. Sem rede, sem `curl` ou com resposta inválida, nada aparece.
+
+Como o aviso compara com o `version.txt` da `main`, suba a versão nesse arquivo **só junto com a
+release**; se subir antes, o aviso aparece e a página de releases ainda mostra a versão antiga.
+
+- `--no-update-check` desliga a verificação.
+- `--update-preview 9.9.9` mostra o aviso sem consultar a rede (também com `--screenshot`).
+- Código: `src/update.rs`, **idêntico em todos os apps** (como o `header.rs`): busca, comparação de
+  versões e desenho do aviso, com testes. O `main.rs` de cada app inicia a busca, desenha o aviso
+  por cima do quadro e trata a entrada enquanto ele está aberto.
+
 ## O que está verificado e o que não está
 
 Verificado aqui (x86_64, sem o aparelho):

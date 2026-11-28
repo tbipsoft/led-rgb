@@ -12,8 +12,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use led_rgb::update;
 use led_rgb::{
     devices::{self, screen, Feature},
+    gfx::Fonts,
     ui::{parse_accent, tiles, Hit, Model, Renderer, Status, ACCENT_DEFAULT, COLS, TILE_COUNT},
     Color, Config, Controller, Desired, DryRun, LedHandle, Options, Timing, Transport,
     UartTransport, BRI_MAX, BRI_MIN, DEFAULT_DEV, DEFAULT_PWR,
@@ -45,6 +47,8 @@ struct Args {
     no_gamepad: bool,
     accent: Color,
     animate: bool,
+    update_check: bool,
+    update_preview: Option<String>,
 }
 
 const HELP: &str = "\
@@ -65,6 +69,8 @@ USO: led-rgb [opcoes]
   --no-anim         sem animacoes (respiracao dos aneis, ponto do status)
   --screenshot PPM  (depuracao) desenha um quadro 1280x720 sem abrir janela, salva em PPM e sai
   --cursor N        (depuracao) tile inicial 0..=15
+  --no-update-check nao procura versao nova no GitHub
+  --update-preview V  (depuracao) mostra o aviso de versao nova como se V fosse a nova
   -h, --help        esta ajuda
 ";
 
@@ -94,6 +100,8 @@ fn parse_args() -> Result<Args, String> {
         no_gamepad: false,
         accent: ACCENT_DEFAULT,
         animate: true,
+        update_check: true,
+        update_preview: None,
     };
     let mut it = env::args().skip(1);
     while let Some(arg) = it.next() {
@@ -109,6 +117,8 @@ fn parse_args() -> Result<Args, String> {
             "--leds" => a.leds = Some(val("--leds")?.parse().map_err(|_| "--leds invalido")?),
             "--repeat" => a.repeat = val("--repeat")?.parse().map_err(|_| "--repeat invalido")?,
             "--screenshot" => a.screenshot = Some(PathBuf::from(val("--screenshot")?)),
+            "--no-update-check" => a.update_check = false,
+            "--update-preview" => a.update_preview = Some(val("--update-preview")?),
             "--cursor" => {
                 let n: usize = val("--cursor")?.parse().map_err(|_| "--cursor invalido")?;
                 a.cursor = Some(n.min(TILE_COUNT - 1));
@@ -378,6 +388,38 @@ fn main() {
     }
 }
 
+/// Com o aviso de versao nova aberto: estas teclas, botoes ou um toque o fecham.
+fn dismisses_dialog(ev: &Event, no_gamepad: bool) -> bool {
+    match ev {
+        Event::KeyDown {
+            keycode: Some(k), ..
+        } => matches!(
+            *k,
+            Keycode::Return
+                | Keycode::KpEnter
+                | Keycode::Escape
+                | Keycode::Backspace
+                | Keycode::Space
+        ),
+        Event::ControllerButtonDown { button, .. } => {
+            !no_gamepad && matches!(button, Button::A | Button::B | Button::Start)
+        }
+        Event::MouseButtonDown { .. } => true,
+        _ => false,
+    }
+}
+
+/// Eventos que continuam valendo com o aviso aberto (fechar a janela, redesenho, controles).
+fn passes_dialog(ev: &Event) -> bool {
+    matches!(
+        ev,
+        Event::Quit { .. }
+            | Event::Window { .. }
+            | Event::ControllerDeviceAdded { .. }
+            | Event::ControllerDeviceRemoved { .. }
+    )
+}
+
 const INCOMPATIBLE: &str = "This device has no compatible RGB LED controller.";
 
 fn run(args: Args) -> Result<(), String> {
@@ -443,10 +485,18 @@ fn run(args: Args) -> Result<(), String> {
             0.7,
             args.animate,
         );
-        r.frame().write_ppm(path).map_err(|e| e.to_string())?;
+        let mut f = r.frame().clone();
+        if let Some(v) = &args.update_preview {
+            update::draw_dialog(&mut f, &Fonts::new(), v, args.accent);
+        }
+        f.write_ppm(path).map_err(|e| e.to_string())?;
         app.finish();
         return Ok(());
     }
+
+    // Procura versao nova em segundo plano: a tela abre na hora e, sem rede, nada aparece.
+    let updates = update::spawn(args.update_check, args.update_preview.clone());
+    let mut dialog: Option<String> = None;
 
     let sdl = sdl2::init()?;
     let video = sdl.video()?;
@@ -489,10 +539,24 @@ fn run(args: Args) -> Result<(), String> {
         .create_texture_streaming(PixelFormatEnum::ARGB8888, w, h)
         .map_err(|e| e.to_string())?;
 
+    let fonts = Fonts::new();
+    let mut dialog_drawn = Instant::now();
     let start = Instant::now();
     let mut force = true;
     while !app.quit {
+        if let Ok(v) = updates.try_recv() {
+            dialog = Some(v);
+            force = true;
+        }
         for ev in pump.poll_iter() {
+            // Com o aviso de versao nova aberto, a entrada so serve para fecha-lo.
+            if dialog.is_some() && !passes_dialog(&ev) {
+                if dismisses_dialog(&ev, args.no_gamepad) {
+                    dialog = None;
+                    force = true;
+                }
+                continue;
+            }
             match ev {
                 Event::Quit { .. } => app.quit = true,
                 Event::KeyDown {
@@ -549,6 +613,25 @@ fn run(args: Args) -> Result<(), String> {
                 .create_texture_streaming(PixelFormatEnum::ARGB8888, w, h)
                 .map_err(|e| e.to_string())?;
             force = true;
+        }
+        if let Some(v) = &dialog {
+            // Com o aviso aberto a tela de baixo fica parada: compoe os dois so quando
+            // preciso (e a cada 1 s, para nao sumir no KMSDRM).
+            if force || dialog_drawn.elapsed() >= Duration::from_secs(1) {
+                let model = app.model(leds, args.dry_run, args.accent);
+                rend.update(&model, start.elapsed().as_secs_f32(), args.animate);
+                let mut f = rend.frame().clone();
+                update::draw_dialog(&mut f, &fonts, v, args.accent);
+                tex.update(None, f.data(), f.pitch())
+                    .map_err(|e| e.to_string())?;
+                canvas.copy(&tex, None, None)?;
+                canvas.present();
+                dialog_drawn = Instant::now();
+                force = false;
+            }
+            app.send_pending();
+            std::thread::sleep(Duration::from_millis(30));
+            continue;
         }
         let model = app.model(leds, args.dry_run, args.accent);
         let t = start.elapsed().as_secs_f32();

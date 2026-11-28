@@ -17,6 +17,7 @@ pub mod gfx;
 pub mod header;
 pub mod session;
 pub mod ui;
+pub mod update;
 
 pub use config::Config;
 pub use driver::{
